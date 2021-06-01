@@ -1,0 +1,52 @@
+---
+- name : Control OCI NSG
+  connection: local
+  hosts: localhost
+  gather_facts: no
+  serial: 1
+  vars_files:
+    - ../vars/nsg_add_rule_list.yml
+  tasks:
+    - name: read lists from json
+      command: "cat ../vars/lb_egress_nsg.json"
+      register: json_string
+
+    - name: analyze json
+      set_fact:
+        json_parsed: "{{ json_string.stdout | from_json }}"
+
+    - name: Perform action add on network_security_group_security_rule
+      oracle.oci.oci_network_security_group_security_rule_actions:
+        network_security_group_id: '{{ network_security_group_id }}'
+        security_rules:
+        - description: '{{ item.description }}'
+          source_type: '{{ item.source_type }}'
+          source: '{{ item.source }}'
+          direction: '{{ item.direction }}'
+          protocol: '{{ item.protocol }}'
+          tcp_options:
+            destination_port_range:
+              max: '{{ item.tcp_options.destination_port_range.max }}'
+              min: '{{ item.tcp_options.destination_port_range.min }}'
+          is_stateless: '{{ item.is_stateless }}'
+        action: "add"
+      with_items: "{{ json_parsed.msg.network_security_group_security_rules }}"
+      when: "'{{item.direction }}' == 'INGRESS'"
+
+    - name: Perform action add on network_security_group_security_rule
+      oracle.oci.oci_network_security_group_security_rule_actions:
+        network_security_group_id: '{{ network_security_group_id }}'
+        security_rules:
+        - description: '{{ item.description }}'
+          destination_type: '{{ item.destination_type }}'
+          destination: '{{ item.destination }}'
+          direction: '{{ item.direction }}'
+          protocol: '{{ item.protocol }}'
+          tcp_options:
+            source_port_range:
+              max: '{{ item.tcp_options.source_port_range.max }}'
+              min: '{{ item.tcp_options.source_port_range.min}}'
+          is_stateless: '{{ item.is_stateless }}'
+        action: "add"
+      with_items: "{{ json_parsed.msg.network_security_group_security_rules }}"
+      when: "'{{item.direction }}' == 'EGRESS'"
