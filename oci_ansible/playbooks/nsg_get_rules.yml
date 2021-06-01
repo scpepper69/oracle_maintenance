@@ -5,7 +5,7 @@
   gather_facts: no
   serial: 1
   vars_files:
-    - ../vars/nsg_add_rule_list.yml
+    - ../vars/nsg_target_ocid.yml
   tasks:
     - name: List network_security_group_security_rules
       oracle.oci.oci_network_security_group_security_rule_facts:
